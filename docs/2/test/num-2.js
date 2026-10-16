@@ -1,0 +1,150 @@
+import { describe, it, expect } from "bun:test";
+import { int, fin } from "../src/num.js";
+
+describe("Exhaustive Numeric System Tests (Int & Fin)", () => {
+
+    describe("Base Validation and assert behavior", () => {
+        const testValues = [-1000, -1, 0, 1, 1000, 3.14, Infinity, -Infinity, NaN, "10", null, undefined];
+        
+        it("should correctly identify safe integers for int system", () => {
+            for (const v of testValues) {
+                const expected = Number.isSafeInteger(v);
+                expect(int.s.is(v)).toBe(expected);
+            }
+        });
+
+        it("should correctly identify finite numbers for fin system", () => {
+            for (const v of testValues) {
+                const expected = Number.isFinite(v);
+                expect(fin.s.is(v)).toBe(expected);
+            }
+        });
+
+        it("should assert valid values and throw TypeError on invalid values", () => {
+            expect(int.s8.assert(10)).toBe(10);
+            expect(() => int.s8.assert(3.14)).toThrow(TypeError);
+            expect(() => int.s8.assert("10")).toThrow(TypeError);
+        });
+    });
+
+    describe("Custom Range Exhaustive Bounds", () => {
+        const boundaryPairs = [
+            [-10, 10],
+            [0, 100],
+            [-53, 53],
+            [Number.MIN_SAFE_INTEGER, Number.MAX_SAFE_INTEGER],
+            [5, 5]
+        ];
+
+        for (const [min, max] of boundaryPairs) {
+            it(`should correctly enforce range [${min}, ${max}]`, () => {
+                const r = int.rng(min, max);
+                expect(r.min).toBe(min);
+                expect(r.max).toBe(max);
+
+                if (Number.isSafeInteger(min) && Number.isSafeInteger(max)) {
+                    expect(r.is(min)).toBe(true);
+                    expect(r.is(max)).toBe(true);
+                    if (min > Number.MIN_SAFE_INTEGER) expect(r.is(min - 1)).toBe(false);
+                    if (max < Number.MAX_SAFE_INTEGER) expect(r.is(max + 1)).toBe(false);
+                }
+            });
+        }
+
+        it("should throw TypeError for invalid range arguments", () => {
+            const invalidInputs = [
+                [10, "20"],
+                ["10", 20],
+                [null, 10],
+                [10, undefined],
+                [3.14, 10]
+            ];
+            for (const [min, max] of invalidInputs) {
+                expect(() => int.rng(min, max)).toThrow(TypeError);
+            }
+        });
+    });
+
+    describe("P2 Exhaustive t-parameter and combination tests", () => {
+        // s (t=0) と u (t=1) を含むショートカット網羅検証
+        const shortcuts = [
+            { key: "s", min: Number.MIN_SAFE_INTEGER, max: Number.MAX_SAFE_INTEGER },
+            { key: "u", min: 0, max: Number.MAX_SAFE_INTEGER },
+            { key: "s8", min: -128, max: 127, radix: 2, sign: false, bit: 8 },
+            { key: "u8", min: 0, max: 255, radix: 2, sign: true, bit: 8 },
+            { key: "s16", min: -32768, max: 32767, radix: 2, sign: false, bit: 16 },
+            { key: "u16", min: 0, max: 65535, radix: 2, sign: true, bit: 16 },
+            { key: "s32", min: -2147483648, max: 2147483647, radix: 2, sign: false, bit: 32 },
+            { key: "u32", min: 0, max: 4294967295, radix: 2, sign: true, bit: 32 },
+        ];
+
+        for (const sc of shortcuts) {
+            it(`should verify P2 shortcut: ${sc.key}`, () => {
+                const obj = int[sc.key];
+                expect(obj.min).toBe(sc.min);
+                expect(obj.max).toBe(sc.max);
+                if (sc.radix !== undefined) {
+                    expect(obj.radix).toBe(sc.radix);
+                    expect(obj.sign).toBe(sc.sign);
+                    expect(obj.bit).toBe(sc.bit);
+                }
+                
+                expect(obj.is(sc.min)).toBe(true);
+                expect(obj.is(sc.max)).toBe(true);
+                if (sc.min > Number.MIN_SAFE_INTEGER) expect(obj.is(sc.min - 1)).toBe(false);
+                if (sc.max < Number.MAX_SAFE_INTEGER) expect(obj.is(sc.max + 1)).toBe(false);
+            });
+        }
+
+        // 境界値を含む正式な許容範囲 (-53 〜 53) の網羅的ループテスト
+        for (let t = -53; t <= 53; t++) {
+            it(`should dynamically validate P2 with t=${t}`, () => {
+                const p = int.p2(t);
+                expect(typeof p.min).toBe("number");
+                expect(typeof p.max).toBe("number");
+                if (t !== 0 && t !== 1) {
+                    expect(p.bit).toBe(Math.abs(t));
+                }
+            });
+        }
+
+        const invalidTValues = [-54, 54, 3.5, "8", null];
+        for (const t of invalidTValues) {
+            it(`should throw TypeError for invalid P2 t=${t}`, () => {
+                expect(() => int.p2(t)).toThrow(TypeError);
+            });
+        }
+    });
+
+    describe("P10 Exhaustive t-parameter tests", () => {
+        // 境界値を含む正式な許容範囲 (-15 〜 15) の網羅的ループテスト
+        for (let t = -15; t <= 15; t++) {
+            it(`should validate P10 with t=${t}`, () => {
+                const p = int.p10(t);
+                expect(typeof p.min).toBe("number");
+                expect(typeof p.max).toBe("number");
+                if (t !== 0) {
+                    expect(p.radix).toBe(10);
+                    expect(p.bit).toBe(Math.abs(t));
+                }
+            });
+        }
+
+        const invalidP10T = [-16, 16, 1.5, "2"];
+        for (const t of invalidP10T) {
+            it(`should throw TypeError for invalid P10 t=${t}`, () => {
+                expect(() => int.p10(t)).toThrow(TypeError);
+            });
+        }
+    });
+
+    describe("Int and Fin Parity Tests", () => {
+        const targets = ["s8", "u8", "s16", "u16", "s32", "u32", "s", "u"];
+        for (const key of targets) {
+            it(`should have identical min/max bounds for ${key} between Int and Fin`, () => {
+                expect(fin[key].min).toBe(int[key].min);
+                expect(fin[key].max).toBe(int[key].max);
+            });
+        }
+    });
+});
