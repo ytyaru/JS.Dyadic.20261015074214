@@ -1,12 +1,12 @@
 const tryFn = (v,n='isFn') => {
-    if ('funtion'!==typeof v) {throw new TypeError(`${n} は真偽値を返す関数であるべきです。`)}
+    if ('function'!==typeof v) {throw new TypeError(`${n} は真偽値を返す関数であるべきです。:${v}`)}
     return v;
 }
 class Type { // 型
     #isFn; #dFn;
     constructor(isFn, dFn) {
         this.#isFn = tryFn(isFn);
-        this.#dFn = tryFn(dFn);
+        this.#dFn = tryFn(dFn, 'dFn');
         this.#isFn(this.default);
     }
     get isFn() {return this.#isFn}
