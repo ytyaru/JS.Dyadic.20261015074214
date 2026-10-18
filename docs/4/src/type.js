@@ -12,17 +12,25 @@ class Type { // 型
     }
     get isFn() {return this.#isFn}
     get default() {return this.#dFn(this.#isFn)}
-    is(v)  {return this.#isFn(v)} // 真偽値
-    try(v) { // 例外発生（trueの時は値を返す）
-        if (!this.is(v)) {throw new TypeError(`vはisFnが真を返す値であるべきです。v:${v}, isFn:${this.#isFn}`)}
-        return v;
+//    is(v)  {return this.#isFn(v)} // 真偽値
+//    try(v) { // 例外発生（trueの時は値を返す）
+//        if (!this.is(v)) {throw new TypeError(`vはisFnが真を返す値であるべきです。v:${v}, isFn:${this.#isFn}`)}
+//        return v;
+//    }
+    is(...args)  {return this.#isFn(...args)} // 真偽値
+    try(...args) { // 例外発生（trueの時は値を返す）
+        if (!this.is(...args)) {throw new TypeError(`args は isFn が真を返す値であるべきです。v:${args}, isFn:${this.#isFn}`)}
+        return 1===args.length ? args[0] : args;
     }
 }
 class Value { // 値
     static onSets = Object.freeze({
-        throw: (x,s)=>s.type.try(x),
+        throw: (x,s)=>s.type.try(...x),
         ignore: _=>true,
         default: (x,s)=>s.v=s.type.default,
+//        throw: (x,s)=>s.type.try(x),
+//        ignore: _=>true,
+//        default: (x,s)=>s.v=s.type.default,
     });
     #v; #type; #onSet;
     constructor(type, onSet=Value.onSets.throw) {
@@ -31,7 +39,7 @@ class Value { // 値
         this.#v = this.#type.default;
     }
     #tryType(t) {
-        if (!(t instanceof Type)) {throw new TypeError(`type はType型インスタンスであるべきです。:${t}`)}
+        if (!(t instanceof Type)) {throw new TypeError(`type は Type 型インスタンスであるべきです。:${t}`)}
         return t;
     }
     get type() {return this.#type;}
@@ -40,9 +48,14 @@ class Value { // 値
     set v(x) {
 //        if (this.#type.is(x)) {this.#v=x;}
 //        else {this.#onSet(x, this)}
-        this.#type.is(x) ? this.#v=x : this.#onSet(x, this);
+//        this.#type.is(x) ? this.#v=x : this.#onSet(x, this);
+        this.#type.is(x) ? this.#v=x : this.#onSet([x], this);
      }
-}
+     set(...args) {
+        if (0===args.length) {throw new Error(`引数に代入値を指定してください。`)}
+        this.#type.is(...args) ? this.#v=args[0] : this.#onSet(args, this);
+     }
+ }
 /*
 const dFns = {
     bln: _=>false,
@@ -95,12 +108,16 @@ const V = {}
 for (let d of [...D, ...DN]) {
 //    console.log(d.name);
     Object.defineProperty(T, d.name, {
-        get(){return new Type(d.isFn, d.dFn)}
+        get(){return new Type(d.isFn, d.dFn)},
+        enumerable: true,
     });
 }
 for (let k of Object.keys(T)) {
+    console.log(k);
     Object.defineProperty(V, k, {
-        get () {return new Value(new T[k]())}
+        //get () {return new Value(new T[k]())},
+        get () {return new Value(T[k])},
+        enumerable: true,
     });
 }
 export {Type,Value,T,V}

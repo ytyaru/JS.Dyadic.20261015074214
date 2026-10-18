@@ -45,7 +45,8 @@ describe('Type', ()=>{
                 test.each(['a','ab'].map(x=>[x]))('%p', v=>expect(t.try(v)).toBe(v));
             });
             describe('異常系', ()=>{
-                test.each(['',0,null].map(x=>[x]))('%p', v=>assertThrow(TypeError,/^vはisFnが真を返す値であるべきです。v:/,_=>t.try(v)));
+                //test.each(['',0,null].map(x=>[x]))('%p', v=>assertThrow(TypeError,/^vはisFnが真を返す値であるべきです。v:/,_=>t.try(v)));
+                test.each(['',0,null].map(x=>[x]))('%p', v=>assertThrow(TypeError,/^args は isFn が真を返す値であるべきです。v:/,_=>t.try(v)));
             });
         });
     });
@@ -60,8 +61,8 @@ describe('Value', ()=>{
         });
         describe('異常系', ()=>{
             test('(type,onSet)', ()=>assertThrow(TypeError, 'onSet は真偽値を返す関数であるべきです。:null', ()=>new Value(new Type(_=>true,_=>0),null)));
-            test('(type,onSet)', ()=>assertThrow(TypeError, 'type はType型インスタンスであるべきです。:null', ()=>new Value(null,_=>0)));
-            test('(type,onSet)', ()=>assertThrow(TypeError, 'type はType型インスタンスであるべきです。:null', ()=>new Value(null,null)));
+            test('(type,onSet)', ()=>assertThrow(TypeError, 'type は Type 型インスタンスであるべきです。:null', ()=>new Value(null,_=>0)));
+            test('(type,onSet)', ()=>assertThrow(TypeError, 'type は Type 型インスタンスであるべきです。:null', ()=>new Value(null,null)));
         });
     });
     describe('getter/setter', ()=>{
@@ -90,7 +91,8 @@ describe('Value', ()=>{
         describe('throw', ()=>{
             const v = new Value(t);
             //test.each(['',0,null].map(x=>[x]))('%p', v=>assertThrow(TypeError, /^vはisFnが真を返す値であるべきです。v:/, _=>v.v=v));
-            test.each(['',0,null].map(x=>[x]))('%p', x=>assertThrow(TypeError, /^vはisFnが真を返す値であるべきです。v:/, _=>v.v=x));
+            //test.each(['',0,null].map(x=>[x]))('%p', x=>assertThrow(TypeError, /^vはisFnが真を返す値であるべきです。v:/, _=>v.v=x));
+            test.each(['',0,null].map(x=>[x]))('%p', x=>assertThrow(TypeError, /^args は isFn が真を返す値であるべきです。v:/, _=>v.v=x));
         });
         describe('ignore', ()=>{
             const v = new Value(t, Value.onSets.ignore);
@@ -108,14 +110,77 @@ describe('T', ()=>{
         const isGetter = n => {
             const des = Object.getOwnPropertyDescriptor(T, n);
             const isG = typeof des?.get === 'function';
-            console.log(des);
+//            console.log(des);
             expect(isG).toBe(true);
         }
         test.each(Object.keys(tis).map(x=>[x]))('%s', n=>isGetter(n));
         test.each(Object.keys(tis).filter(n=>!['nun','nul'].some(x=>x===n)).map(x=>[x+'N']))('%s', n=>isGetter(n));
     });
+    describe('ary', ()=>{
+        describe('(v,f)', ()=>{
+            const t = T.ary;
+            test('[0,1],tis.int', ()=>expect(t.is([0,1], tis.int)).toBe(true));
+            test(`[0,'1'],tis.int`, ()=>expect(t.is([0,'1'], tis.int)).toBe(false));
+            test(`[0,'1'],tis.int`, ()=>expect(t.is([0,'1'])).toBe(true));
+            test(`[0,'1'],tis.int`, ()=>expect(t.is([])).toBe(true));
+            test(`[0,'1'],tis.int`, ()=>expect(t.is([], tis.int)).toBe(true));
+        });
+
+    });
 });
+describe('V', ()=>{
+    describe('has API', ()=>{
+        const isGetter = n => {
+            const des = Object.getOwnPropertyDescriptor(V, n);
+            const isG = typeof des?.get === 'function';
+//            console.log(des);
+            expect(isG).toBe(true);
+        }
+        test.each(Object.keys(tis).map(x=>[x]))('%s', n=>isGetter(n));
+        test.each(Object.keys(tis).filter(n=>!['nun','nul'].some(x=>x===n)).map(x=>[x+'N']))('%s', n=>isGetter(n));
+    });
+    describe('ary', ()=>{
+        describe('set(v,f)', ()=>{
+            const v = V.ary;
+            /*
+            test('[0,1],tis.int', ()=>expect(v.set([0,1], tis.int)).toBe(true));
+            test(`[0,'1'],tis.int`, ()=>expect(v.set([0,'1'], tis.int)).toBe(false));
+            test(`[0,'1'],tis.int`, ()=>expect(v.set([0,'1'])).toBe(true));
+            test(`[0,'1'],tis.int`, ()=>expect(v.set([])).toBe(true));
+            test(`[0,'1'],tis.int`, ()=>expect(v.set([], tis.int)).toBe(true));
+            */
+
+//            test('[0,1],tis.int', ()=>expect(v.set([0,1], tis.int)).toBe(true));
+//            test(`[0,'1'],tis.int`, ()=>expect(v.set([0,'1'], tis.int)).toBe(false));
+//            test(`[0,'1'],tis.int`, ()=>expect(v.set([0,'1'])).toBe(true));
+//            test(`[0,'1'],tis.int`, ()=>expect(v.set([])).toBe(true));
+//            test(`[0,'1'],tis.int`, ()=>expect(v.set([], tis.int)).toBe(true));
+
+            // 正しい値の代入はエラーにならないこと、または値が更新されることをテスト
+            test('[0,1],tis.int', ()=> {
+                v.set([0,1], tis.int); // 例外が出ないこと
+                expect(v.v).toEqual([0,1]);
+            });
+            test('[0,1],tis.int', ()=> {
+                v.set([1,'2']); // 例外が出ないこと
+                expect(v.v).toEqual([1,'2']);
+            });
+            test('[],tis.int', ()=> {
+                v.set([], tis.int); // 例外が出ないこと
+                expect(v.v).toEqual([]);
+            });
+            // 不正な値の代入で例外（TypeError）がスローされることをテスト
+            test(`[0,'1'],tis.int`, ()=> {
+//                expect(() => v.set([0,'1'], tis.int)).toThrow(TypeError);
+                assertThrow(TypeError, /^args は isFn が真を返す値であるべきです。v:/, ()=>v.set([0,'1'], tis.int));
+            });
+        });
+
+    });
+});
+
 console.log('------------------------------------');
-console.log(T);
+//console.log(T);
+//console.log(V);
 
 
