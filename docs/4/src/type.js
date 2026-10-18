@@ -11,12 +11,12 @@ class Type { // 型
         this.#isFn(this.default);
     }
     get isFn() {return this.#isFn}
+    get default() {return this.#dFn(this.#isFn)}
     is(v)  {return this.#isFn(v)} // 真偽値
     try(v) { // 例外発生（trueの時は値を返す）
         if (!this.is(v)) {throw new TypeError(`vはisFnが真を返す値であるべきです。v:${v}, isFn:${this.#isFn}`)}
         return v;
     }
-    get default() {return this.#dFn(this.#isFn)}
 }
 class Value { // 値
     static onSets = Object.freeze({
@@ -30,9 +30,9 @@ class Value { // 値
         this.#onSet = tryFn(onSet, 'onSet');
         this.#v = this.#type.default;
     }
-    #tryType(v) {
-        if (!(type instanceof Type)) {throw new TypeError(`type はType型インスタンスであるべきです。`)}
-        return v;
+    #tryType(t) {
+        if (!(t instanceof Type)) {throw new TypeError(`type はType型インスタンスであるべきです。:${t}`)}
+        return t;
     }
     get type() {return this.#type;}
     get onSet() {return this.#onSet;}
@@ -43,6 +43,7 @@ class Value { // 値
         this.#type.is(x) ? this.#v=x : this.#onSet(x, this);
      }
 }
+/*
 const dFns = {
     bln: _=>false,
     str: _=>'',
@@ -62,12 +63,33 @@ const dFns = {
     run: _=>null,
     fn: _=>null,
 };
+*/
+const dFns = {
+    bln: _=>false,
+    str: _=>'',
+    big: _=>0n,
+    sym: _=>Symbol(),
+    num: _=>0,
+    int: _=>0,
+    flt: _=>0,
+    ref: _=>{},
+    obj: _=>{},
+    nob: _=>Object.create(null),
+    pob: _=>{},
+    ary: _=>[],
+    ins: (v,C=class{})=>new C(),
+    cls: _=>class{},
+    run: _=>(()=>{}),
+    fn: _=>(()=>{}),
+};
 const D = Object.entries(tis).reduce((a,[k,isFn])=>{a.push({name:k, isFn:tis[k], dFn:dFns[k]}); return a;}, []);
 // Nullable系
-const DN = D.reduce((a,o)=>{const d={...o}; d.name=d.name+'N'; d.isFn=v=>null===v || o.isFn(v); d.dFn=_=>null; a.push(d); return a;}, []);
+//const DN = Object.entries(dFns).reduce((a,[k,dFn])=>{if(null!==dFn()){a.push({name:k+'N', })}; return a;}, []);
+//const DN = D.reduce((a,o)=>{const d={...o}; d.name=d.name+'N'; d.isFn=v=>null===v || o.isFn(v); d.dFn=_=>null; a.push(d); return a;}, []);
 // 以下は最初からNullableなので論理的に不要のため削除する
-delete DN.nunN; 
-delete DN.nulN;
+//delete DN.nunN; 
+//delete DN.nulN;
+const DN = D.reduce((a,o)=>{if(!['nun','nul'].some(n=>n===o.name)){const d={...o}; d.name=d.name+'N'; d.isFn=v=>null===v || o.isFn(v); d.dFn=_=>null; a.push(d);} return a;}, []);
 const T = {}
 const V = {}
 for (let d of [...D, ...DN]) {
