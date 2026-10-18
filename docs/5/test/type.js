@@ -163,7 +163,7 @@ describe('V', ()=>{
                 assertThrow(TypeError, /^args は isFn が真を返す値であるべきです。v:/, ()=>v.set([0,'1'], tis.int));
             });
         });
-        test('v', ()=> {
+        test('v', ()=>{
             const v = V.ary;
             v.v = [1,'2'];
             expect(v.v).toEqual([1,'2']);

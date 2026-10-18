@@ -39,11 +39,11 @@ class Value { // 値
     get v()  {return this.#v;}
     set v(x) {
         this.#type.is(x) ? this.#v=x : this.#onSet([x], this);
-     }
-     set(...args) {
+    }
+    set(...args) {
         if (0===args.length) {throw new Error(`引数に代入値を指定してください。`)}
         this.#type.is(...args) ? this.#v=args[0] : this.#onSet(args, this);
-     }
+    }
  }
 const dFns = {
     bln: _=>false,
